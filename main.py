@@ -1,23 +1,18 @@
 import pygame
 import random
 
-#####################################
-# Ohjelmoinnin jatkokurssi 2021     #
-# Elisa Rissanen Osa 12 Oma peli    #
-#####################################
-
-# VAIKEUSTASO: Mitä isompi luku, sitä hitaampi mato (default: 10)
+# DIFFICULTY LEVEL: the higher the number, the faster the snake (default: 10)
 vaikeustaso = 10
 
 ### Known unsolved issues: ###
-# Hedelmät voi spawnata score-ruudun alle: yläruutuun olisi voinut tehdä erillisen pistelaskuri-yläikkunan
-# Peli ei ole gridi-pohjalla, joka tuo vähän omanlaisensa fiiliksen - säätöjä voi tehdä vaikeustason, hedelmän hitboxin, ja snaken kasvun mukaan; tarviin gametesterin tähän
+# The goals can spawn under the score-screen: this could be solved by creating a score-window on top of the screen
+# The game in its entirety is not on a grid-layout, which creates a weird feeling. Needs game testing.
 
 class Snake:
     def __init__(self):
         pygame.init()
 
-        # Näytön koko
+        # Screen size
         ruudun_koko = 12
         sarakkeet = 20
         rivit = 30
@@ -45,7 +40,7 @@ class Snake:
                 self.gameover_draw()
             self.kello.tick(60)
 
-    # Tuottaa annetusta tekstistä ja sijainnista standardisoidun tekstin
+    # Creates given text and location a standardized text
     def piirra_teksti(self, input_teksti, positio, vari):
         teksti = self.fontti.render(input_teksti, True, vari)
         tekstin_koko = teksti.get_size()
@@ -53,7 +48,7 @@ class Snake:
         positio[1] = positio[1] - tekstin_koko[1]//2
         self.naytto.blit(teksti, positio)
 
-### Aloitusikkuna ###
+### Starting screen ###
     def start_event(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -71,8 +66,8 @@ class Snake:
         self.piirra_teksti('SCORE', [self.naytto_leveys/2,10], (255,255,255))
         pygame.display.update()
 
-### Peli ###
-    # Alustaa madon määritykset pelin alussa
+### Game ###
+    # Initializes the snake settings in start of game
     def new_game(self):
         self.direction = ""
         self.snake_size = 10
@@ -81,20 +76,20 @@ class Snake:
         self.y = self.naytto_korkeus / 2
         self.x_speed = 0
         self.y_speed = 0
-        # Alustetaan lista, joka seuraa madon pikseleitä
+        # Initializes the list following the snake pixels
         self.snake_pixel = []
         self.snake_length = 1
 
-        # Randomoidaan targetti (hedelmä) ensimmäisen kerran
+        # Randomizes the snake target for the first time
         self.target_x = round(random.randrange(0, self.naytto_leveys-self.snake_size) / 10.0) * 10.0
         self.target_y = round(random.randrange(0, self.naytto_korkeus-self.snake_size) / 10.0) * 10.0
 
-    # Pisteiden piirtäminen pelin aikana
+    # Score drawing during the game
     def draw_score(self):
         pisteet = self.score
         self.piirra_teksti('SCORE: ' + str(pisteet), [self.naytto_leveys/2,10], (255,255,255))
 
-    # Piirtää madon
+    # Drawing the snake
     def draw_snake(self):
         for pixel in self.snake_pixel:
             pygame.draw.rect(self.naytto, (0,255,0), [pixel[0], pixel[1], self.snake_size, self.snake_size])
@@ -105,7 +100,7 @@ class Snake:
                 pygame.quit() 
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 self.state = "gameover"
-            # Pelaajan näppäinsyötteet, ei anna siirtyä suoraan vastakkaiseen suuntaan (collision suoraan matoon itseensä)
+            # User input. Does not allow collowision directly into the snake (second pixel)
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LEFT and self.direction != "right":
                     self.x_speed = -self.snake_size
@@ -124,27 +119,27 @@ class Snake:
                     self.y_speed = self.snake_size
                     self.direction = "down"
 
-        # Seinään ajamisen tarkistaminen
+        # Check wall collision
         if self.x >= self.naytto_leveys or self.x < 0 or self.y >= self.naytto_korkeus or self.y < 0:
             self.state = "gameover"
 
-        # Madon sijainti ja vaikeustason huomiointi
+        # Snake location and difficulty
         self.x += self.x_speed/vaikeustaso
         self.y += self.y_speed/vaikeustaso
 
     def play_draw(self):
         self.naytto.fill((0,0,0))
 
-        # Piirretään targetti
+        # Draw target
         pygame.draw.rect(self.naytto, (255,165,0), [self.target_x, self.target_y, self.snake_size, self.snake_size])
 
-        # Tarkistetaan jos target löydetty ja pidetään mato oikean pituisena
+        # Check if target and draw snake correct lenght
         self.snake_pixel.append([self.x, self.y])
         if len(self.snake_pixel) > self.snake_length:
             del self.snake_pixel[0]
  
-        # Pysäytetään peli, jos mato ajaa itseensä
-        # Tarkistetaan, jos madon pää on samassa pikselissä, kuin joku sen muu pikseli ja ajetaan peli game over tilaan
+        # Stop game, if snake collides to itself
+        # If the snake's head is in the same pixel as any other pixel -> game over state
         for pixel in self.snake_pixel[:-1]:
             if self.x == pixel[0] and self.y == pixel[1]:
                 self.state = "gameover"
@@ -154,15 +149,15 @@ class Snake:
 
         pygame.display.update()
 
-        # Targetin syöminen, generoidaan uusi random target, lisätään madon pituutta ja lisätään scorea
-        s = 3 # hitboxin kokoa pystyy säätämään (default: 3)
+        # Eating the target, generate a new target, add snake length, add score
+        s = 3 # increase hitbox size (default: 3)
         if (self.x >= self.target_x - s and self.x <= self.target_x + s) and (self.y >= self.target_y - s and self.y <= self.target_y + s):
             self.target_x = round(random.randrange(0, self.naytto_leveys-self.snake_size) / 10.0) * 10.0
             self.target_y = round(random.randrange(0, self.naytto_korkeus-self.snake_size) / 10.0) * 10.0
-            self.snake_length += 5 # tästä pystyy säätämään madon kasvun määrää (default: 5)
+            self.snake_length += 5 # increase snake lenght increase (default: 5)
             self.score += 1
 
-### Game over ruutu ###
+### Game over screen ###
     def gameover_event(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
